@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
   helper.set(socket.userId, socket.id);
   socket.on('disconnect', () => {
     console.log('disconnect', socket.id, socket.userId);
-    helper.del(socket.userId);
+    helper.del(socket.userId, socket.id);
   });
 });
 

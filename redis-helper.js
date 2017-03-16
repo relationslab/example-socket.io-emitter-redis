@@ -6,7 +6,7 @@ export default class RedisHelper {
   }
 
   init () {
-    this.client.keys(`key:*:${this.hostname}:${this.port}`, (err, keys) => {
+    this.client.keys(`key::*::${this.hostname}:${this.port}::*`, (err, keys) => {
       // console.log('init', keys);
       keys.forEach((key) => {
         this.client.del(key);
@@ -15,13 +15,14 @@ export default class RedisHelper {
   }
 
   set (userId, socketId) {
-    this.client.set(this.getKey(userId), socketId);
-    this.client.expireat(this.getKey(userId), parseInt((+new Date)/1000) + 86400); // TODO: 1 day
+    const key = this.getKey(userId, socketId);
+    this.client.set(key, socketId);
+    this.client.expireat(key, parseInt((+new Date)/1000) + (86400 * 7)); // TODO: 7 days
   }
 
   fetchSocketIds (userId) {
     return new Promise((resolve, reject) => {
-      this.client.keys(`key:${userId}:*`, (err, keys) => {
+      this.client.keys(`key::${userId}::*`, (err, keys) => {
         console.log('fetchSocketIds', keys);
         const gets = keys.map((key) => {
           return promiseGet(this.client, key);
@@ -37,12 +38,12 @@ export default class RedisHelper {
     });
   }
 
-  del (userId) {
-    this.client.del(this.getKey(userId));
+  del (userId, socketId = '*') {
+    this.client.del(this.getKey(userId, socketId));
   }
 
-  getKey(userId) {
-    return `key:${userId}:${this.hostname}:${this.port}`;
+  getKey(userId, socketId) {
+    return `key::${userId}::${this.hostname}:${this.port}::${socketId}`;
   }
 }
 
