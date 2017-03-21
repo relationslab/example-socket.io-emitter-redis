@@ -59,3 +59,7 @@ $ node index.js 4000
 * Next, change URL to [http://lcoalhost:3000/message/to/1/Hi](http://lcoalhost:3000/message/to/1/Hi). This is for message to user 1 and message content is "Hi".
 
 You can send message to specific users.
+
+## Remarks
+
+If you're interested in case of separated socket.io server. I've prepared demo for that case too, on [different branch](https://github.com/takayukii/example-Socket.io-emitter-Redis/tree/separated-socketio). 
