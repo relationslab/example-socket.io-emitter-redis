@@ -41,20 +41,34 @@ $ npm run build
 
 ## Demo
 
-Run server with port 3000
+This demo is for *separated Socket.io server* purpose. If you want socket.io co-exists in general server process, check master branch.
+
+Run general server on port 3000
 
 ```$xslt
-$ node index.js 3000
+$ node server.js 3000
 ```
 
-Run server with port 4000
+Run socket.io server on port 3001
 
 ```$xslt
-$ node index.js 4000
+$ node socket.js 3001
 ```
 
-* Open [http://lcoalhost:3000?id=1](http://lcoalhost:3000?id=1), assuming this screen is for user 1. 
-* Next, open [http://lcoalhost:4000?id=2](http://lcoalhost:4000?id=2) on different browser (tab). This is for user 2.
+Run general server on port 4000
+
+```$xslt
+$ node server.js 4000
+```
+
+Run socket.io server on port 4001
+
+```$xslt
+$ node socket.js 4001
+```
+
+* Open [http://lcoalhost:3000?id=1&port=3001](http://lcoalhost:3000?id=1), assuming this screen is for user 1. 
+* Next, open [http://lcoalhost:4000?id=2&port=4001](http://lcoalhost:4000?id=2) on different browser (tab). This is for user 2.
 * To send message, open [http://lcoalhost:3000/message/to/2/Hello](http://lcoalhost:3000/message/to/2/Hello) on different browser or tab. This is for message to user 2 and message content is "Hello".
 * Next, change URL to [http://lcoalhost:3000/message/to/1/Hi](http://lcoalhost:3000/message/to/1/Hi). This is for message to user 1 and message content is "Hi".
 

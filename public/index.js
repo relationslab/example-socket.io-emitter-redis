@@ -6,7 +6,7 @@ import qs from 'qs';
 const query = window.location.search.replace('?', '');
 const params = qs.parse(query);
 
-const server = `//${window.location.hostname}:${window.location.port }`;
+const server = `//${window.location.hostname}:${params.port}`;
 console.log('connecting to', server);
 
 const socket = require('socket.io-client')(server, {

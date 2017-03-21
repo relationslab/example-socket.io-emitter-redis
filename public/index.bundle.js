@@ -19129,14 +19129,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var query = window.location.search.replace('?', '');
 var params = _qs2.default.parse(query);
 
-var server = '//' + window.location.hostname + ':' + window.location.port;
+var server = '//' + window.location.hostname + ':' + params.port;
 console.log('connecting to', server);
 
 var socket = __webpack_require__(26)(server, {
   query: 'token=' + params.id
 });
 
-// const socket = io('http://localhost:3000', {
+// In case using <script src="//localhost:3000/socket.io/socket.io.js"></script>
+// const socket = io(server, {
 //   query: `token=${params.id}`
 // });
 
