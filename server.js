@@ -30,7 +30,6 @@ const sub = redis(REDIS_PORT, REDIS_HOST);
 const redisAdapter = require('socket.io-redis');
 
 io.adapter(redisAdapter({ host: REDIS_HOST, port: REDIS_PORT, pubClient: pub, subClient: sub }));
-io.use(middlewareAttachRoomId);
 
 const helper = new RedisHelper(redis(REDIS_PORT, REDIS_HOST), os.hostname(), process.argv[2]);
 helper.init();
@@ -71,25 +70,3 @@ router.post('/message', bodyParser(), async (ctx, next) => {
       ctx.body = err;
     });
 })
-
-router.get('/message/to/:roomId/:message', async (ctx, next) => {
-  await helper.fetchSocketIds(ctx.params.roomId)
-    .then(socketIds => {
-      console.log('socketIds', socketIds);
-      ctx.body = `<p>Sent message to socket ids [${socketIds.join(', ')}]</p>`;
-      socketIds.forEach((socketId) => {
-        emitter.to(socketId).emit('push_message', `${ctx.params.message} - ${new Date()}`);
-      });
-    })
-    .catch(err => {
-      console.log(err);
-      ctx.body = err;
-    });
-});
-
-function middlewareAttachRoomId (socket, next) {
-  console.log('Token =', socket.handshake.query.token);
-  // TODO: Using token instead of real roomId in this sample.
-  socket.roomId = socket.handshake.query.token;
-  next(); // MUST call next() in middleware
-}
