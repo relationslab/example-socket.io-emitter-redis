@@ -38,11 +38,13 @@ helper.init();
  * Events
  */
 io.on('connection', (socket) => {
-  //console.log('connection', socket.id, socket.roomId);
-  //helper.set(socket.roomId, socket.id);
   socket.on('change_room', (req) => {
+    const oldRoomId = '';  // TODO: socket.id から roomId を取得する処理
+    console.log('remove socket from room.', socket.id, oldRoomId);
+    helper.del(oldRoomId, socket.id);
+
     const roomId = req.roomId;
-    console.log('connection', socket.id, roomId);
+    console.log('add socket to room.', socket.id, roomId);
     helper.set(roomId, socket.id);
   })
   socket.on('disconnect', () => {
