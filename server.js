@@ -38,24 +38,29 @@ helper.init();
  * Events
  */
 io.on('connection', (socket) => {
+  socket.on('disconnect', async () => {
+    await helper.fetchRoomIdsBySocketId(socket.id)
+      .then(roomIds => {
+        roomIds.forEach(roomId => {
+          console.log('disconnect', 'socket', socket.id, 'room', roomId);
+          helper.delRoomId(socket.id, roomId);
+        })
+      })
+  });
   socket.on('change_room', async (req) => {
-
+    // remove previous (old) roomId from socketId
     await helper.fetchRoomIdsBySocketId(socket.id)
       .then(oldRoomIds => {
         oldRoomIds.forEach(oldRoomId => {
           console.log('[del]', 'socket', socket.id, 'room', oldRoomId);
-          helper.del(oldRoomId, socket.id);
+          helper.delRoomId(socket.id, oldRoomId);
         })
       })
-
+    // bind new roomId to socketId
     const roomId = req.roomId;
     console.log('[add]', 'socket', socket.id, 'room', roomId);
-    helper.set(roomId, socket.id);
+    helper.setRoomId(socket.id, roomId);
   })
-  socket.on('disconnect', () => {
-    console.log('disconnect', socket.id, socket.roomId);
-    helper.del(socket.roomId, socket.id);
-  });
 });
 
 /**

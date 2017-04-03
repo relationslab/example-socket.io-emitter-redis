@@ -19191,7 +19191,7 @@ socket.on('push_message', function (message) {
 
   var changeRoom = function changeRoom() {
     var roomId = $roomId.filter(':checked').val();
-    $title.text('This page is for room ' + roomId);
+    $title.text('This page is for room "' + roomId + '"');
     $chat.empty();
     console.log('change room:', roomId);
     socket.json.emit('change_room', {

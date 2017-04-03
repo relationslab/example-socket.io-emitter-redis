@@ -14,7 +14,7 @@ export default class RedisHelper {
     });
   }
 
-  set (roomId, socketId) {
+  setRoomId (socketId, roomId) {
     // socketId - roomId
     const roomKey = this.getRoomKeyBySocket(socketId);
     this.client.set(roomKey, roomId);
@@ -25,7 +25,7 @@ export default class RedisHelper {
     this.client.expireat(socketKey, expireAt());
   }
 
-  del (roomId, socketId = '*') {
+  delRoomId (socketId, roomId) {
     this.client.del(this.getRoomKeyBySocket(socketId));
     this.client.del(this.getSocketKeyByRoom(roomId));
   }
