@@ -20,6 +20,10 @@ export default class RedisHelper {
     this.client.expireat(key, parseInt((+new Date)/1000) + (86400 * 7)); // TODO: 7 days
   }
 
+  del (roomId, socketId = '*') {
+    this.client.del(this.getKey(roomId, socketId));
+  }
+
   fetchSocketIds (roomId) {
     return new Promise((resolve, reject) => {
       this.client.keys(`key::${roomId}::*`, (err, keys) => {
@@ -38,8 +42,25 @@ export default class RedisHelper {
     });
   }
 
-  del (roomId, socketId = '*') {
-    this.client.del(this.getKey(roomId, socketId));
+  fetchRoomIds (socketId) {
+    console.log('fetchRoomIds', socketId);
+    if (!socketId) {
+      return [];
+    }
+    return new Promise((resolve, reject) => {
+      this.client.keys(`key::*::${socketId}`, (err, keys) => {
+        if (err) {
+          resolve([]);
+        } else {
+          console.log('fetchRoomIds keys', keys);
+          const roomIds = keys.map((key) => {
+            const tokens = key.split('::');
+            return tokens[1];
+          })
+          resolve(roomIds);
+        }
+      });
+    });
   }
 
   getKey(roomId, socketId) {

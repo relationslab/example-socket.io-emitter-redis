@@ -22,18 +22,21 @@ const socket = require('socket.io-client')(server, {
 
 socket.on('push_message', (message) => {
   console.log('on push_message', message);
-  $('.message').append(`<li>${message}</li>`);
+  $('.chat').append(`<li>${message}</li>`);
 });
 
 $(document).ready(() => {
 
+  const $title = $('.title');
+  const $chat = $('.chat');
   const $message = $('#inputMessage');
   const $button = $('#postMessage');
   const $roomId = $('input[name=roomId]');
 
   const changeRoom = () => {
     const roomId = $roomId.filter(':checked').val();
-    $('.title').text(`This page is for room ${roomId}`);
+    $title.text(`This page is for room ${roomId}`);
+    $chat.empty();
     console.log('change room:', roomId);
     socket.json.emit('change_room', {
       'roomId': roomId

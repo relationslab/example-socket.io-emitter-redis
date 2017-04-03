@@ -19178,18 +19178,21 @@ var socket = __webpack_require__(26)(server, {
 
 socket.on('push_message', function (message) {
   console.log('on push_message', message);
-  (0, _jquery2.default)('.message').append('<li>' + message + '</li>');
+  (0, _jquery2.default)('.chat').append('<li>' + message + '</li>');
 });
 
 (0, _jquery2.default)(document).ready(function () {
 
+  var $title = (0, _jquery2.default)('.title');
+  var $chat = (0, _jquery2.default)('.chat');
   var $message = (0, _jquery2.default)('#inputMessage');
   var $button = (0, _jquery2.default)('#postMessage');
   var $roomId = (0, _jquery2.default)('input[name=roomId]');
 
   var changeRoom = function changeRoom() {
     var roomId = $roomId.filter(':checked').val();
-    (0, _jquery2.default)('.title').text('This page is for room ' + roomId);
+    $title.text('This page is for room ' + roomId);
+    $chat.empty();
     console.log('change room:', roomId);
     socket.json.emit('change_room', {
       'roomId': roomId
