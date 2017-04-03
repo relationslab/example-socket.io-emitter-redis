@@ -6,7 +6,7 @@ export default class RedisHelper {
   }
 
   init () {
-    this.client.keys(`key::*::${this.hostname}:${this.port}::*`, (err, keys) => {
+    this.client.keys(`*::host::${this.hostname}:${this.port}::*`, (err, keys) => {
       // console.log('init', keys);
       keys.forEach((key) => {
         this.client.del(key);
@@ -15,57 +15,61 @@ export default class RedisHelper {
   }
 
   set (roomId, socketId) {
-    const key = this.getKey(roomId, socketId);
-    this.client.set(key, socketId);
-    this.client.expireat(key, parseInt((+new Date)/1000) + (86400 * 7)); // TODO: 7 days
+    // socketId - roomId
+    const roomKey = this.getRoomKeyBySocket(socketId);
+    this.client.set(roomKey, roomId);
+    this.client.expireat(roomKey, expireAt());
+    // roomId - socketId
+    const socketKey = this.getSocketKeyByRoom(roomId);
+    this.client.set(socketKey, socketId);
+    this.client.expireat(socketKey, expireAt());
   }
 
   del (roomId, socketId = '*') {
-    this.client.del(this.getKey(roomId, socketId));
+    this.client.del(this.getRoomKeyBySocket(socketId));
+    this.client.del(this.getSocketKeyByRoom(roomId));
   }
 
-  fetchSocketIds (roomId) {
-    return new Promise((resolve, reject) => {
-      this.client.keys(`key::${roomId}::*`, (err, keys) => {
-        console.log('fetchSocketIds', keys);
-        const gets = keys.map((key) => {
-          return promiseGet(this.client, key);
-        });
-        return Promise.all(gets)
-          .then(values => {
-            resolve(values);
-          })
-          .catch(err => {
-            reject(err);
-          });
-      });
-    });
+  // socketId - roomId
+  getRoomKeyBySocket(socketId) {
+    return `socket::${socketId}::host::${this.hostname}:${this.port}::room`;
   }
-
-  fetchRoomIds (socketId) {
-    console.log('fetchRoomIds', socketId);
+  fetchRoomIdsBySocketId (socketId) {
+    console.log('fetchRoomIdsBySocketId', socketId);
     if (!socketId) {
       return [];
     }
-    return new Promise((resolve, reject) => {
-      this.client.keys(`key::*::${socketId}`, (err, keys) => {
-        if (err) {
-          resolve([]);
-        } else {
-          console.log('fetchRoomIds keys', keys);
-          const roomIds = keys.map((key) => {
-            const tokens = key.split('::');
-            return tokens[1];
-          })
-          resolve(roomIds);
-        }
-      });
-    });
+    return fetchValues(this.client, `socket::${socketId}::*::room`);
   }
 
-  getKey(roomId, socketId) {
-    return `key::${roomId}::${this.hostname}:${this.port}::${socketId}`;
+  // roomId - socketId
+  getSocketKeyByRoom(roomId) {
+    return `room::${roomId}::host::${this.hostname}:${this.port}::socket`;
   }
+  fetchSocketIdsByRoomId (roomId) {
+    console.log('fetchSocketIdsByRoomId', roomId);
+    if (!roomId) {
+      return [];
+    }
+    return fetchValues(this.client, `room::${roomId}::*::socket`);
+  }
+}
+
+function fetchValues (client, keyPattern) {
+  return new Promise((resolve, reject) => {
+    client.keys(keyPattern, (err, keys) => {
+      const gets = keys.map((key) => {
+        return promiseGet(client, key);
+      });
+      return Promise.all(gets)
+        .then(values => {
+          resolve(values);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  });
 }
 
 function promiseGet(client, key) {
@@ -78,4 +82,8 @@ function promiseGet(client, key) {
       }
     });
   });
+}
+
+function expireAt() {
+  return parseInt((+new Date)/1000) + (86400 * 7); // TODO: 7 days
 }

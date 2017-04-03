@@ -39,13 +39,14 @@ helper.init();
  */
 io.on('connection', (socket) => {
   socket.on('change_room', async (req) => {
-    await helper.fetchRoomIds(socket.id)
-    .then(oldRoomIds => {
-      oldRoomIds.forEach(oldRoomId => {
-        console.log('[del]', 'socket', socket.id, 'room', oldRoomId);
-        helper.del(oldRoomId, socket.id);
+
+    await helper.fetchRoomIdsBySocketId(socket.id)
+      .then(oldRoomIds => {
+        oldRoomIds.forEach(oldRoomId => {
+          console.log('[del]', 'socket', socket.id, 'room', oldRoomId);
+          helper.del(oldRoomId, socket.id);
+        })
       })
-    })
 
     const roomId = req.roomId;
     console.log('[add]', 'socket', socket.id, 'room', roomId);
@@ -63,7 +64,7 @@ io.on('connection', (socket) => {
 router.post('/message', bodyParser(), async (ctx, next) => {
   const {roomId, message} = ctx.request.body;
   console.log('/message', roomId, message);
-  await helper.fetchSocketIds(roomId)
+  await helper.fetchSocketIdsByRoomId(roomId)
     .then(socketIds => {
       console.log('socketIds', socketIds);
       ctx.body = `<p>Sent message to socket ids [${socketIds.join(', ')}]</p>`;
