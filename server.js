@@ -40,28 +40,16 @@ helper.init();
  * Events
  */
 io.on('connection', (socket) => {
+  console.log('[SOCKET] connection', 'socket', socket.id);
   socket.on('disconnect', async () => {
-    await fetchRoomIdsBySocketId(helper, socket.id)
-      .then(roomIds => {
-        roomIds.forEach(roomId => {
-          console.log('disconnect', 'socket', socket.id, 'room', roomId);
-          delRoomId(helper, socket.id, roomId);
-        })
-      })
+    console.log('[SOCKET] disconnect', 'socket', socket.id);
+    await disconnect(helper, socket.id);
   });
   socket.on('change_room', async (req) => {
-    // remove previous (old) roomId from socketId
-    await fetchRoomIdsBySocketId(helper, socket.id)
-      .then(oldRoomIds => {
-        oldRoomIds.forEach(oldRoomId => {
-          console.log('[del]', 'socket', socket.id, 'room', oldRoomId);
-          delRoomId(helper, socket.id, oldRoomId);
-        })
-      })
-    // bind new roomId to socketId
-    const roomId = req.roomId;
-    console.log('[add]', 'socket', socket.id, 'room', roomId);
-    setRoomId(helper, socket.id, roomId);
+    const {roomId} = req;
+    console.log('[SOCKET] change_room', 'socket', socket.id);
+    await disconnect(helper, socket.id);
+    linkSocketAndRoom(helper, socket.id, roomId);
   })
 });
 
@@ -69,11 +57,11 @@ io.on('connection', (socket) => {
  * Routing
  */
 router.post('/message', bodyParser(), async (ctx, next) => {
-  const {roomId, message} = ctx.request.body;
-  console.log('/message', roomId, message);
+  const {token, roomId, message} = ctx.request.body;
+  console.log('[POST] /message', roomId, message);
   await fetchSocketIdsByRoomId(helper, roomId)
     .then(socketIds => {
-      console.log('socketIds', socketIds);
+      console.log(`> sockets in the room '${roomId}'`, socketIds);
       ctx.body = `<p>Sent message to socket ids [${socketIds.join(', ')}]</p>`;
       socketIds.forEach((socketId) => {
         emitter.to(socketId).emit('push_message', `${message} - ${new Date()}`);
@@ -87,34 +75,40 @@ router.post('/message', bodyParser(), async (ctx, next) => {
 
 // ------------------
 
-function setRoomId (helper, socketId, roomId) {
-  helper.set(getRoomKeyBySocket(helper, socketId), roomId);
-  helper.set(getSocketKeyByRoom(helper, roomId), socketId);
+async function disconnect(helper, socketId) {
+  console.log('> disconnect()', socketId);
+  const roomIds = await fetchRoomIdsBySocketId(helper, socketId)
+  console.log('> roomIds', roomIds);
+  roomIds.forEach(roomId => {
+    unlinkSocketAndRoom(helper, socketId, roomId);
+  })
 }
 
-function delRoomId (helper, socketId, roomId) {
-  helper.del(getRoomKeyBySocket(helper, socketId));
-  helper.del(getSocketKeyByRoom(helper, roomId));
+// socket - room
+function linkSocketAndRoom (helper, socketId, roomId) {
+  console.log('> linkSocketAndRoom()', socketId, roomId);
+  helper.set(`socket::${socketId}::host::${helper.host}::room`, roomId);
+  // key をユニークにするため、key の中にも socketId を含ませる（room は複数の socket を持てる）
+  helper.set(`room::${roomId}::socket::${socketId}::host::${helper.host}::socket`, socketId);
+}
+function unlinkSocketAndRoom (helper, socketId, roomId) {
+  console.log('> unlinkSocketAndRoom()', socketId, roomId);
+  helper.del(`socket::${socketId}::host::${helper.host}::room`);
+  helper.del(`room::${roomId}::socket::${socketId}::host::${helper.host}::socket`);
 }
 
-// socketId - roomId
-function getRoomKeyBySocket (helper, socketId) {
-  return `socket::${socketId}::host::${helper.host}::room`;
-}
+// room(s) <- socket
 async function fetchRoomIdsBySocketId (helper, socketId) {
-  // console.log('fetchRoomIdsBySocketId', socketId);
+  console.log('> fetchRoomIdsBySocketId()', socketId);
   if (!socketId) {
     return [];
   }
   return await helper.fetch(`socket::${socketId}::*::room`);
 }
 
-// roomId - socketId
-function getSocketKeyByRoom (helper, roomId) {
-  return `room::${roomId}::host::${helper.host}::socket`;
-}
+// sockets <- room
 async function fetchSocketIdsByRoomId (helper, roomId) {
-  // console.log('fetchSocketIdsByRoomId', roomId);
+  console.log('> fetchSocketIdsByRoomId()', roomId);
   if (!roomId) {
     return [];
   }
