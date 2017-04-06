@@ -32,6 +32,12 @@ $(document).ready(() => {
   const $message = $('#inputMessage');
   const $button = $('#postMessage');
   const $roomId = $('input[name=roomId]');
+  const $token = $('input[name=token]');
+
+  const init = () => {
+    const token = Math.random(); // TODO: JWTを使う？
+    $token.val(token);
+  };
 
   const changeRoom = () => {
     const roomId = $roomId.filter(':checked').val();
@@ -44,6 +50,7 @@ $(document).ready(() => {
   }
 
   const postMessage = () => {
+    const token = $token.val();
     const roomId = $roomId.filter(':checked').val();
     const message = $message.val();
     console.log('send message', roomId, message);
@@ -51,6 +58,7 @@ $(document).ready(() => {
       url: '/message',
       type: 'POST',
       data: {
+        token: token,
         roomId: roomId,
         message: message
       },

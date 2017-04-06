@@ -19188,6 +19188,12 @@ socket.on('push_message', function (message) {
   var $message = (0, _jquery2.default)('#inputMessage');
   var $button = (0, _jquery2.default)('#postMessage');
   var $roomId = (0, _jquery2.default)('input[name=roomId]');
+  var $token = (0, _jquery2.default)('input[name=token]');
+
+  var init = function init() {
+    var token = Math.random(); // TODO: JWTを使う？
+    $token.val(token);
+  };
 
   var changeRoom = function changeRoom() {
     var roomId = $roomId.filter(':checked').val();
@@ -19200,6 +19206,7 @@ socket.on('push_message', function (message) {
   };
 
   var postMessage = function postMessage() {
+    var token = $token.val();
     var roomId = $roomId.filter(':checked').val();
     var message = $message.val();
     console.log('send message', roomId, message);
@@ -19207,6 +19214,7 @@ socket.on('push_message', function (message) {
       url: '/message',
       type: 'POST',
       data: {
+        token: token,
         roomId: roomId,
         message: message
       },
