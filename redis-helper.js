@@ -3,85 +3,68 @@ export default class RedisHelper {
     this.client = client;
     this.hostname = hostname;
     this.port = port;
+    this.host = `${hostname}:${port}`;
   }
 
   init () {
-    this.client.keys(`*::host::${this.hostname}:${this.port}::*`, (err, keys) => {
-      // console.log('init', keys);
+    this.client.keys(`*::host::${this.host}::*`, (err, keys) => {
       keys.forEach((key) => {
-        this.client.del(key);
+        this.del(key);
       });
     });
   }
 
-  setRoomId (socketId, roomId) {
-    // socketId - roomId
-    const roomKey = this.getRoomKeyBySocket(socketId);
-    this.client.set(roomKey, roomId);
-    this.client.expireat(roomKey, expireAt());
-    // roomId - socketId
-    const socketKey = this.getSocketKeyByRoom(roomId);
-    this.client.set(socketKey, socketId);
-    this.client.expireat(socketKey, expireAt());
-  }
-
-  delRoomId (socketId, roomId) {
-    this.client.del(this.getRoomKeyBySocket(socketId));
-    this.client.del(this.getSocketKeyByRoom(roomId));
-  }
-
-  // socketId - roomId
-  getRoomKeyBySocket(socketId) {
-    return `socket::${socketId}::host::${this.hostname}:${this.port}::room`;
-  }
-  fetchRoomIdsBySocketId (socketId) {
-    console.log('fetchRoomIdsBySocketId', socketId);
-    if (!socketId) {
-      return [];
-    }
-    return fetchValues(this.client, `socket::${socketId}::*::room`);
-  }
-
-  // roomId - socketId
-  getSocketKeyByRoom(roomId) {
-    return `room::${roomId}::host::${this.hostname}:${this.port}::socket`;
-  }
-  fetchSocketIdsByRoomId (roomId) {
-    console.log('fetchSocketIdsByRoomId', roomId);
-    if (!roomId) {
-      return [];
-    }
-    return fetchValues(this.client, `room::${roomId}::*::socket`);
-  }
-}
-
-function fetchValues (client, keyPattern) {
-  return new Promise((resolve, reject) => {
-    client.keys(keyPattern, (err, keys) => {
-      const gets = keys.map((key) => {
-        return promiseGet(client, key);
-      });
-      return Promise.all(gets)
-        .then(values => {
-          resolve(values);
-        })
-        .catch(err => {
+  keys(keyPattern) {
+    return new Promise((resolve, reject) => {
+      this.client.keys(keyPattern, (err, keys) => {
+        if (err) {
           reject(err);
-        });
+        } else {
+          resolve(keys);
+        }
+      });
     });
-  });
-}
+  }
 
-function promiseGet(client, key) {
-  return new Promise((resolve, reject) => {
-    client.get(key, (err, data) => {
-      if (err) {
-        return reject(err);
-      } else {
-        return resolve(data);
-      }
+  set(key, val) {
+    this.client.set(key, val);
+    this.client.expireat(key, expireAt());
+  }
+
+  get(key) {
+    return new Promise((resolve, reject) => {
+      this.client.get(key, (err, val) => {
+        if (err) {
+          console.log(err);
+          reject(err);
+        } else {
+          console.log(val);
+          resolve(val);
+        }
+      });
     });
-  });
+  }
+
+  fetch(keyPattern) {
+    return new Promise((resolve, reject) => {
+      this.client.keys(keyPattern, (err, keys) => {
+        const gets = keys.map((key) => {
+          return this.get(key);
+        });
+        return Promise.all(gets)
+          .then(values => {
+            resolve(values);
+          })
+          .catch(err => {
+            reject(err);
+          });
+      });
+    });
+  }
+
+  del(key) {
+    this.client.del(key);
+  }
 }
 
 function expireAt() {
