@@ -1,4 +1,5 @@
 import os from 'os';
+import process from 'process';
 import Koa from 'koa';
 import serve from 'koa-static';
 import bodyParser from 'koa-bodyparser'
@@ -16,25 +17,35 @@ app.use(router.routes());
 /**
  * Server
  */
-const host = os.hostname();
 const port = process.argv[2];
 const server = app.listen(port);
-console.log(`Listening ${host}:${port}...`);
-const io = require('socket.io').listen(server);
+console.log(`Listening ${port}...`);
 
 /**
  * Redis
  */
-const emitter = require('socket.io-emitter')({ host: REDIS_HOST, port: REDIS_PORT });
 const redis = require('redis').createClient;
-const pub = redis(REDIS_PORT, REDIS_HOST);
-const sub = redis(REDIS_PORT, REDIS_HOST);
-const redisAdapter = require('socket.io-redis');
+const emitter = require('socket.io-emitter')({
+  host: REDIS_HOST,
+  port: REDIS_PORT
+});
+const redisAdapter = require('socket.io-redis')({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  pubClient: redis(REDIS_PORT, REDIS_HOST),
+  subClient: redis(REDIS_PORT, REDIS_HOST)
+});
+const helper = new RedisHelper({
+  client: redis(REDIS_PORT, REDIS_HOST),
+  process: `${os.hostname()}.${process.pid}`
+});
+helper.init(`*::proc::${helper.process}::*`);
 
-io.adapter(redisAdapter({ host: REDIS_HOST, port: REDIS_PORT, pubClient: pub, subClient: sub }));
-
-const helper = new RedisHelper(redis(REDIS_PORT, REDIS_HOST), host, port);
-helper.init();
+/**
+ * Socket.io
+ */
+const io = require('socket.io').listen(server);
+io.adapter(redisAdapter);
 
 /**
  * Events
@@ -87,14 +98,14 @@ async function disconnect(helper, socketId) {
 // socket - room
 function linkSocketAndRoom (helper, socketId, roomId) {
   console.log('> linkSocketAndRoom()', socketId, roomId);
-  helper.set(`socket::${socketId}::host::${helper.host}::room`, roomId);
+  helper.set(`socket::${socketId}::proc::${helper.process}::room`, roomId);
   // key をユニークにするため、key の中にも socketId を含ませる（room は複数の socket を持てる）
-  helper.set(`room::${roomId}::socket::${socketId}::host::${helper.host}::socket`, socketId);
+  helper.set(`room::${roomId}::socket::${socketId}::proc::${helper.process}::socket`, socketId);
 }
 function unlinkSocketAndRoom (helper, socketId, roomId) {
   console.log('> unlinkSocketAndRoom()', socketId, roomId);
-  helper.del(`socket::${socketId}::host::${helper.host}::room`);
-  helper.del(`room::${roomId}::socket::${socketId}::host::${helper.host}::socket`);
+  helper.del(`socket::${socketId}::proc::${helper.process}::room`);
+  helper.del(`room::${roomId}::socket::${socketId}::proc::${helper.process}::socket`);
 }
 
 // room(s) <- socket

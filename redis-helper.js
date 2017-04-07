@@ -1,13 +1,13 @@
 export default class RedisHelper {
-  constructor(client, hostname, port) {
-    this.client = client;
-    this.hostname = hostname;
-    this.port = port;
-    this.host = `${hostname}:${port}`;
+  constructor({client, process}) {
+    console.log(`RedisHelper: process = ${process}`);
+    this.client = client;  // redis client
+    this.process = process;
   }
 
-  init () {
-    this.client.keys(`*::host::${this.host}::*`, (err, keys) => {
+  init (keyPattern) {
+    console.log(`RedisHelper.init: ${keyPattern}`);
+    this.client.keys(keyPattern, (err, keys) => {
       keys.forEach((key) => {
         this.del(key);
       });
